@@ -25,6 +25,12 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
+;;
+;; This package propose to insert a frame header bar with :
+;;  - project name;
+;;  - date and time;
+;;  - battery information.
+;;
 ;;; Code:
 
 (require 'all-the-icons)
@@ -187,7 +193,11 @@ Valid Values: icons, text, both."
          (backend (vc-backend file))
          (rev (if backend (vc-call-backend backend 'mode-line-string file) ""))
         )
-    (concat name " > " rev)
+    (concat name (if (not (string= rev ""))
+                     (concat " > " rev)
+                   ""
+                   )
+            )
     )
   )
 
@@ -219,7 +229,6 @@ Valid Values: icons, text, both."
 
 (defun ghb-open (&rest _x)
   (interactive)
-  (message "Open")
   (setq ghb-window-origin (get-buffer-window))
   (let ((ghb-exists (ghb-exists-p))
         (ghb-buffer (ghb-get-buffer))
@@ -236,7 +245,6 @@ Valid Values: icons, text, both."
 
 (defun ghb-close (&rest _x)
   (interactive)
-  (message "Close")
   (let ((ghb-exists (ghb-exists-p)))
     (when ghb-exists
       (let ((ghb-buffer (ghb-get-buffer)))
@@ -258,8 +266,6 @@ Valid Values: icons, text, both."
 (add-to-list 'desktop-modes-not-to-save 'ghb-bar-mode)
 (advice-add 'desktop-save :before 'ghb-close)
 (advice-add 'desktop-save :after 'ghb-open)
-
-(ghb-open)
 
 (provide 'ghb)
 ;;; ghb.el ends here
