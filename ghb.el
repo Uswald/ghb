@@ -6,7 +6,6 @@
 ;; Created: 28 Aug 2021
 ;; URL: https://github.com/Uswald/ghb
 ;; Version: 0.1.0
-;; Package-Version: $Id$
 ;; Package-Requires: ((emacs "24.4") (dash "2.11.0") (f "0.17.2"))
 
 ;; This file is NOT part of Emacs
@@ -79,9 +78,9 @@ Valid Values: icons, text, both."
   :type 'string
   )
 
-(defconst ghb-buffer-name "Ghb")
-
-(defvar ghb-window-origin nil)
+(defconst ghb-buffer-name "Ghb"
+  "General name of the header buffer."
+  )
 
 (defvar ghb-parameters
   '(window-parameters . ((no-other-window . t)
@@ -127,7 +126,7 @@ Valid Values: icons, text, both."
       (. result))))
 
 (defun ghb-write-text (project)
-  "Errase buffer and write header text."
+  "Errase buffer and write header text with PROJECT as project name."
   (erase-buffer)
   (ghb-print project)
   )
@@ -202,6 +201,7 @@ Valid Values: icons, text, both."
   )
 
 (defun ghb-print (project)
+  "Write the header in the header buffer using PROJECT as project name."
   (let* ((battery (if (not battery-status-function)
                       ""
                     (funcall ghb-battery-display-function)
@@ -228,9 +228,10 @@ Valid Values: icons, text, both."
              battery))))
 
 (defun ghb-open (&rest _x)
+  "Open the header buffer."
   (interactive)
-  (setq ghb-window-origin (get-buffer-window))
-  (let ((ghb-exists (ghb-exists-p))
+  (let ((origin (get-buffer-window))
+        (ghb-exists (ghb-exists-p))
         (ghb-buffer (ghb-get-buffer))
         (ghb-window (ghb-get-window)))
     (unless ghb-exists
@@ -238,12 +239,13 @@ Valid Values: icons, text, both."
       (set-buffer ghb-buffer)
       (select-window ghb-window)
       (ghb-bar-mode)
-      (select-window ghb-window-origin)
+      (select-window origin)
       )
     )
   )
 
 (defun ghb-close (&rest _x)
+  "Close the header buffer."
   (interactive)
   (let ((ghb-exists (ghb-exists-p)))
     (when ghb-exists
