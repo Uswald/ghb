@@ -32,114 +32,114 @@
 (require 'projectile)
 (require 'desktop)
 
-(defgroup header-bar nil
+(defgroup ghb-bar nil
   "Header bar in a emacs frame."
   :group 'environment
   )
 
-(defface header-background
+(defface ghb-background
   '((t :background "#1E90FF"))
   "Font"
-  :group 'header-bar
+  :group 'ghb-bar
   )
 
-(defcustom header-time-format "- %A %d %B %Y - %X -"
+(defcustom ghb-time-format "- %A %d %B %Y - %X -"
   "Define the display format of time in the header bar."
-  :group 'header-bar
+  :group 'ghb-bar
   :type 'string
   )
 
-(defcustom header-battery-display-type 'header-battery-string-wo-icons
+(defcustom ghb-battery-display-function 'ghb-battery-string-wo-icons
   "Define how to display the battery status.
 
 Valid Values: icons, text, both."
-  :group 'header-bar
+  :group 'ghb-bar
   :type '(choice (function-item :tag "Only icons"
                                 :doc "Use only icons"
-                                header-battery-string-w-icons)
+                                ghb-battery-string-w-icons)
                  (function-item :tag "Only text"
                                 :doc "Use only text"
-                                header-battery-string-wo-icons)
+                                ghb-battery-string-wo-icons)
                  (function-item :tag "Text & icons"
                                 :doc "Use text and icons"
-                                header-battery-string-text-icons)
+                                ghb-battery-string-text-icons)
                  )
   )
 
-(defcustom header-battery-format "%b%p%% (%L)"
+(defcustom ghb-battery-format "%b%p%% (%L)"
   "Define the display battery format in the header bar."
-  :group 'header-bar
+  :group 'ghb-bar
   :type 'string
   )
 
-(defconst header-buffer-name "Header")
+(defconst ghb-buffer-name "Ghb")
 
-(defvar header-window-origin nil)
+(defvar ghb-window-origin nil)
 
-(defvar header-parameters
+(defvar ghb-parameters
   '(window-parameters . ((no-other-window . t)
                          (no-delete-other-windows . t)
                          (mode-line-format . none))))
 
-(defvar header-timer nil)
+(defvar ghb-timer nil)
 
 
-(defun header-const-buffer-name ()
+(defun ghb-const-buffer-name ()
   "Construct header buffer name."
-  (concat "  *" header-buffer-name "*  "))
+  (concat "  *" ghb-buffer-name "*  "))
 
-(defun header-get-buffer ()
+(defun ghb-get-buffer ()
   "Return header buffer object."
-  (get-buffer-create (header-const-buffer-name)))
+  (get-buffer-create (ghb-const-buffer-name)))
 
-(defun header-get-window ()
+(defun ghb-get-window ()
   "Return header window object."
-  (let ((header-window (get-buffer-window (header-const-buffer-name))))
-    (unless header-window
+  (let ((ghb-window (get-buffer-window (ghb-const-buffer-name))))
+    (unless ghb-window
       (progn
-        (setq header-window (display-buffer-in-side-window (header-get-buffer)
+        (setq ghb-window (display-buffer-in-side-window (ghb-get-buffer)
                                                            `((side . top)
                                                              (slot . 0)
                                                              (window-height . 1)
                                                              (preserve-size . (nil . t))
-                                                             ,header-parameters)))
-        (set-window-parameter header-window 'mode-line-format 'none)
+                                                             ,ghb-parameters)))
+        (set-window-parameter ghb-window 'mode-line-format 'none)
         )
       )
-    header-window))
+    ghb-window))
 
-(defun header-call-func-in-header (funcname &rest args)
+(defun ghb-call-func-in-ghb (funcname &rest args)
   "Call FUNCNAME in header window with ARGS and come back to previous window."
-  (let ((header-window (header-get-window))
-        (header-window-origin (get-buffer-window)))
-    (select-window header-window)
+  (let ((ghb-window (ghb-get-window))
+        (ghb-window-origin (get-buffer-window)))
+    (select-window ghb-window)
     (let ((result (if args
                       (apply funcname args)
                     (funcall funcname))))
-      (select-window header-window-origin)
+      (select-window ghb-window-origin)
       (. result))))
 
-(defun header-write-text (project)
+(defun ghb-write-text (project)
   "Errase buffer and write header text."
   (erase-buffer)
-  (header-print project)
+  (ghb-print project)
   )
 
-(defun header-text-width ()
+(defun ghb-text-width ()
   "Return header window text width."
-  (header-call-func-in-header 'window-body-width))
+  (ghb-call-func-in-ghb 'window-body-width))
 
-(defun header-exists-p ()
+(defun ghb-exists-p ()
   "Return header buffer if exists."
-  (get-buffer (header-const-buffer-name)))
+  (get-buffer (ghb-const-buffer-name)))
 
-(defun header-update ()
+(defun ghb-update ()
   "Update header buffer text."
   (let ((project (projectile-project-name)))
-    (header-call-func-in-header 'header-write-text project))
+    (ghb-call-func-in-ghb 'ghb-write-text project))
   )
 
-(defun header-battery-string-w-icons ()
+(defun ghb-battery-string-w-icons ()
   "Return the battery string with only icons."
   (let* ((battery-stat (funcall battery-status-function))
          (percent (string-to-number (cdr (assq ?p battery-stat))))
@@ -161,33 +161,37 @@ Valid Values: icons, text, both."
                         'face `(:family ,(all-the-icons-faicon-family)
                                         :height 1)))))
 
-(defun header-battery-string-wo-icons ()
+(defun ghb-battery-string-wo-icons ()
   "Return the battery string with only text."
-  (battery-format header-battery-format (funcall battery-status-function))
+  (battery-format ghb-battery-format (funcall battery-status-function))
   )
 
-(defun header-battery-string-text-icons ()
+(defun ghb-battery-string-text-icons ()
   "Return the battery string with text and icons."
-  (let ((text (header-battery-string-wo-icons))
-        (icons (header-battery-string-w-icons)))
+  (let ((text (ghb-battery-string-wo-icons))
+        (icons (ghb-battery-string-w-icons)))
     (concat icons " - " text)
     )
   )
 
-(defun header-time-string ()
+(defun ghb-time-string ()
   "Return the time string to display in header."
-  (format-time-string header-time-format)
+  (format-time-string ghb-time-format)
   )
 
-(defun header-print (project)
-  (let* ((battery (funcall header-battery-display-type))
-         (time (header-time-string))
+(defun ghb-print (project)
+  (let* ((battery (if (not battery-status-function)
+                      ""
+                    (funcall ghb-battery-display-function)
+                    )
+                  )
+         (time (ghb-time-string))
          (project-width (string-width project))
-         (line-width (header-text-width))
+         (line-width (ghb-text-width))
          (battery-width (string-width battery))
          (time-width (string-width time))
-         (adjust (if (or (eq header-battery-display-type 'header-battery-string-w-icons)
-                         (eq header-battery-display-type 'header-battery-string-text-icons)
+         (adjust (if (or (eq ghb-battery-display-function 'ghb-battery-string-w-icons)
+                         (eq ghb-battery-display-function 'ghb-battery-string-text-icons)
                          )
                      2
                    0))
@@ -201,47 +205,47 @@ Valid Values: icons, text, both."
              (make-string end-width ? )
              battery))))
 
-(defun header-open (&rest _x)
+(defun ghb-open (&rest _x)
   (interactive)
   (message "Open")
-  (setq header-window-origin (get-buffer-window))
-  (let ((header-exists (header-exists-p))
-        (header-buffer (header-get-buffer))
-        (header-window (header-get-window)))
-    (unless header-exists
-      (set-window-buffer header-window header-buffer)
-      (set-buffer header-buffer)
-      (select-window header-window)
-      (header-bar-mode)
-      (select-window header-window-origin)
+  (setq ghb-window-origin (get-buffer-window))
+  (let ((ghb-exists (ghb-exists-p))
+        (ghb-buffer (ghb-get-buffer))
+        (ghb-window (ghb-get-window)))
+    (unless ghb-exists
+      (set-window-buffer ghb-window ghb-buffer)
+      (set-buffer ghb-buffer)
+      (select-window ghb-window)
+      (ghb-bar-mode)
+      (select-window ghb-window-origin)
       )
     )
   )
 
-(defun header-close (&rest _x)
+(defun ghb-close (&rest _x)
   (interactive)
   (message "Close")
-  (let ((header-exists (header-exists-p)))
-    (when header-exists
-      (let ((header-buffer (header-get-buffer)))
-        (kill-buffer header-buffer)
-        (cancel-timer header-timer)
+  (let ((ghb-exists (ghb-exists-p)))
+    (when ghb-exists
+      (let ((ghb-buffer (ghb-get-buffer)))
+        (kill-buffer ghb-buffer)
+        (cancel-timer ghb-timer)
         )
       )
     )
   )
 
-(define-derived-mode header-bar-mode nil "Header-Bar"
+(define-derived-mode ghb-bar-mode nil "Ghb-Bar"
   "Major mode for Headerbar."
-  (buffer-face-set 'header-background)
+  (buffer-face-set 'ghb-background)
   (setq cursor-type nil)
-  (setq header-timer (run-at-time "0 sec" .5 'header-update))
-  :group 'header
+  (setq ghb-timer (run-at-time "0 sec" .5 'ghb-update))
+  :group 'ghb
   )
 
-(add-to-list 'desktop-modes-not-to-save 'header-bar-mode)
-(advice-add 'desktop-save :before 'header-close)
-(advice-add 'desktop-save :after 'header-open)
+(add-to-list 'desktop-modes-not-to-save 'ghb-bar-mode)
+(advice-add 'desktop-save :before 'ghb-close)
+(advice-add 'desktop-save :after 'ghb-open)
 
-(provide 'header)
-;;; header.el ends here
+(provide 'ghb)
+;;; ghb.el ends here
