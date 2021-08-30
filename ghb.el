@@ -31,14 +31,15 @@
 (require 'battery)
 (require 'projectile)
 (require 'desktop)
+(require 'vc)
 
 (defgroup ghb-bar nil
   "Header bar in a emacs frame."
   :group 'environment
   )
 
-(defface ghb-background
-  '((t :background "#1E90FF"))
+(defface ghb
+  '((t :background "#1E90FF" :bold t))
   "Font"
   :group 'ghb-bar
   )
@@ -135,7 +136,7 @@ Valid Values: icons, text, both."
 
 (defun ghb-update ()
   "Update header buffer text."
-  (let ((project (projectile-project-name)))
+  (let ((project (ghb-project-string)))
     (ghb-call-func-in-ghb 'ghb-write-text project))
   )
 
@@ -177,6 +178,17 @@ Valid Values: icons, text, both."
 (defun ghb-time-string ()
   "Return the time string to display in header."
   (format-time-string ghb-time-format)
+  )
+
+(defun ghb-project-string ()
+  "Format the project name in the header bar."
+  (let* ((name (projectile-project-name))
+         (file (buffer-file-name))
+         (backend (vc-backend file))
+         (rev (if backend (vc-call-backend backend 'mode-line-string file) ""))
+        )
+    (concat name " > " rev)
+    )
   )
 
 (defun ghb-print (project)
@@ -237,7 +249,7 @@ Valid Values: icons, text, both."
 
 (define-derived-mode ghb-bar-mode nil "Ghb-Bar"
   "Major mode for Headerbar."
-  (buffer-face-set 'ghb-background)
+  (buffer-face-set 'ghb)
   (setq cursor-type nil)
   (setq ghb-timer (run-at-time "0 sec" .5 'ghb-update))
   :group 'ghb
@@ -246,6 +258,8 @@ Valid Values: icons, text, both."
 (add-to-list 'desktop-modes-not-to-save 'ghb-bar-mode)
 (advice-add 'desktop-save :before 'ghb-close)
 (advice-add 'desktop-save :after 'ghb-open)
+
+(ghb-open)
 
 (provide 'ghb)
 ;;; ghb.el ends here
