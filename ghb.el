@@ -1,4 +1,4 @@
-;;; ghb --- Implement a Emacs frame header bar
+;;; ghb.el --- Implement a Emacs frame header bar
 
 ;; Copyright (C) 2021 Léandre GIRET
 
@@ -192,7 +192,7 @@ Valid Values: icons, text, both."
          (backend (vc-backend file))
          (rev (if backend (vc-call-backend backend 'mode-line-string file) ""))
         )
-    (concat name (if (not (string= rev ""))
+    (concat name (if (not (string= "" rev))
                      (concat " > " rev)
                    ""
                    )
