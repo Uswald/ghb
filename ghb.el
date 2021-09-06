@@ -110,6 +110,7 @@ Valid Values: icons, text, both."
                                                              (preserve-size . (nil . t))
                                                              ,ghb-parameters)))
         (set-window-parameter ghb-window 'mode-line-format 'none)
+        (set-window-dedicated-p ghb-window t)
         )
       )
     ghb-window))
