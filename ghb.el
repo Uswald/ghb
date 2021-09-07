@@ -38,7 +38,7 @@
 (require 'desktop)
 (require 'vc)
 
-(defgroup ghb-bar nil
+(defgroup ghb nil
   "Header bar in a emacs frame."
   :group 'environment
   )
@@ -46,12 +46,12 @@
 (defface ghb
   '((t :background "#1E90FF" :bold t))
   "Font"
-  :group 'ghb-bar
+  :group 'ghb
   )
 
 (defcustom ghb-time-format "- %A %d %B %Y - %X -"
   "Define the display format of time in the header bar."
-  :group 'ghb-bar
+  :group 'ghb
   :type 'string
   )
 
@@ -59,7 +59,7 @@
   "Define how to display the battery status.
 
 Valid Values: icons, text, both."
-  :group 'ghb-bar
+  :group 'ghb
   :type '(choice (function-item :tag "Only icons"
                                 :doc "Use only icons"
                                 ghb-battery-string-w-icons)
@@ -74,7 +74,7 @@ Valid Values: icons, text, both."
 
 (defcustom ghb-battery-format "%b%p%% (%L)"
   "Define the display battery format in the header bar."
-  :group 'ghb-bar
+  :group 'ghb
   :type 'string
   )
 
