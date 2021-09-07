@@ -78,6 +78,44 @@ Valid Values: icons, text, both."
   :type 'string
   )
 
+(defvar ghb-idle-timer nil
+  "Timer started after `ghb-time-delay' seconds of Emacs idle time.
+The function `ghb-start' is called when the timer fires."
+  )
+
+(defvar ghb-timer nil
+  "Timer started from `ghb-start'.
+This timer calls `ghb-update' every
+`ghb-time-update-interval' seconds."
+  )
+
+(defcustom ghb-time-idle-delay 0.5
+  "Seconds of idle time before the first update of the header bar.
+Values smaller than 0.1 sec are treated as 0.1 sec."
+  :type 'number
+  :group 'ghb
+  :set (lambda (symbol value)
+         (let ((used (max value 0.1)))
+           (set-default symbol used)
+           (when ghb-idle-timer (ghb--start-idle-timer))
+           )
+         )
+  )
+
+(defcustom ghb-time-update-interval 0.5
+  "Time between two update of the header bar in seconds.
+Values smaller than 0.1 sec are treated as 0.1 sec."
+  :type 'number
+  :group 'ghb
+  :set (lambda (symbol value)
+         (let ((used (max value 0.1)))
+           (set-default symbol value)
+           (when ghb-timer (ghb--start-timer))
+           )
+         )
+  )
+
+
 (defconst ghb-buffer-name "Ghb"
   "General name of the header buffer."
   )
@@ -87,7 +125,48 @@ Valid Values: icons, text, both."
                          (no-delete-other-windows . t)
                          (mode-line-format . none))))
 
-(defvar ghb-timer nil)
+(defun ghb--start-idle-timer ()
+  "Start the `ghb-idle-timer'."
+  (when ghb-idle-timer (cancel-timer ghb-idle-timer))
+  (setq ghb-idle-timer
+        (run-with-idle-timer ghb-time-idle-delay
+                             :repeat #'ghb-start
+                             )
+        )
+  )
+
+(defun ghb--start-timer ()
+  "Start the `ghb-timer'."
+  (when ghb-timer (cancel-timer ghb-timer))
+  (setq ghb-timer
+        (run-with-timer ghb-time-update-interval ghb-time-update-interval
+                        #'ghb-update
+                        )
+        )
+  )
+
+(defun ghb-start ()
+  "Timer function called from the timer `ghb-idle-timer'.
+This starts the timer `ghb-timer', which updates the header bar
+if appropriate.  It also arranges to cancel that timer when the next
+command starts, by installing a pre-command hook."
+  (when (null ghb-timer)
+    ;; Set up the timer first, so that if this signals an error,
+    ;; ghb is not added to pre-command-hook.
+    (ghb--start-timer)
+    (add-hook 'pre-command-hook 'ghb-end)
+    )
+  )
+
+(defun ghb-end ()
+  "Stop header bar updating.
+This is installed as a pre-command hook by `ghb-start'.
+When run, it cancels the timer `ghb-timer' and removes
+itself as a pre-command hook."
+  (remove-hook 'pre-command-hook 'ghb-end)
+  (when ghb-timer
+    (cancel-timer ghb-timer)
+    (setq ghb-timer nil)))
 
 
 (defun ghb-const-buffer-name ()
@@ -262,7 +341,7 @@ Valid Values: icons, text, both."
   "Major mode for Headerbar."
   (buffer-face-set 'ghb)
   (setq cursor-type nil)
-  (setq ghb-timer (run-at-time "0 sec" .5 'ghb-update))
+  (ghb--start-idle-timer)
   :group 'ghb
   )
 
