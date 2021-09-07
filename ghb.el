@@ -6,7 +6,7 @@
 ;; Created: 28 Aug 2021
 ;; URL: https://github.com/Uswald/ghb
 ;; Version: 0.1.2
-;; Package-Requires: ((emacs "24.4") (dash "2.11.0") (f "0.17.2"))
+;; Package-Requires: ((emacs "27.0") (all-the-icons "5.0.0") (projectile "2.6.0"))
 
 ;; This file is NOT part of Emacs
 
