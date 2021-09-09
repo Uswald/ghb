@@ -331,9 +331,13 @@ itself as a pre-command hook."
     (when ghb-exists
       (let ((ghb-buffer (ghb-get-buffer)))
         (kill-buffer ghb-buffer)
-        (cancel-timer ghb-timer)
         )
       )
+    )
+  (ghb-end)
+  (when ghb-idle-timer
+    (cancel-timer ghb-idle-timer)
+    (setq ghb-idle-timer nil)
     )
   )
 
