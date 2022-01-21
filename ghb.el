@@ -5,7 +5,7 @@
 ;; Author:  Léandre GIRET <lgiret@icloud.com>
 ;; Created: 28 Aug 2021
 ;; URL: https://github.com/Uswald/ghb
-;; Version: 1.0.0
+;; Version: 1.1.0
 ;; Package-Requires: ((emacs "27.0")
 ;;                    (all-the-icons "5.0.0")
 ;;                    (projectile "2.6.0")
