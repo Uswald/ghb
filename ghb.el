@@ -6,7 +6,10 @@
 ;; Created: 28 Aug 2021
 ;; URL: https://github.com/Uswald/ghb
 ;; Version: 1.0.0
-;; Package-Requires: ((emacs "27.0") (all-the-icons "5.0.0") (projectile "2.6.0"))
+;; Package-Requires: ((emacs "27.0")
+;;                    (all-the-icons "5.0.0")
+;;                    (projectile "2.6.0")
+;;                    (frame-local "0.0.1"))
 
 ;; This file is NOT part of Emacs
 
@@ -37,6 +40,26 @@
 (require 'projectile)
 (require 'desktop)
 (require 'vc)
+(require 'frame-local)
+
+;;----------------------------------------------------------------------------;;
+;; Functionalities                                                            ;;
+;;----------------------------------------------------------------------------;;
+
+(defmacro ghb-get (var &optional frame)
+  "Get VAR in FRAME if non-nil or in the current frame."
+  (let ((var-name (intern (format "%s" var))))
+    `(frame-local-get ',var-name (or ,frame (selected-frame)))))
+
+(defmacro ghb-set (var val &optional frame)
+  "Set VAR to VAL in FRAME if non-nil or in the current frame.
+Return VAL."
+  (let ((var-name (intern (format "%s" var))))
+    `(frame-local-set ',var-name ,val (or ,frame (selected-frame)))))
+
+;;----------------------------------------------------------------------------;;
+;; Customization                                                              ;;
+;;----------------------------------------------------------------------------;;
 
 (defgroup ghb nil
   "Header bar in a emacs frame."
@@ -78,17 +101,6 @@ Valid Values: icons, text, both."
   :type 'string
   )
 
-(defvar ghb-idle-timer nil
-  "Timer started after `ghb-time-delay' seconds of Emacs idle time.
-The function `ghb-start' is called when the timer fires."
-  )
-
-(defvar ghb-timer nil
-  "Timer started from `ghb-start'.
-This timer calls `ghb-update' every
-`ghb-time-update-interval' seconds."
-  )
-
 (defcustom ghb-time-idle-delay 0.5
   "Seconds of idle time before the first update of the header bar.
 Values smaller than 0.1 sec are treated as 0.1 sec."
@@ -97,10 +109,9 @@ Values smaller than 0.1 sec are treated as 0.1 sec."
   :set (lambda (symbol value)
          (let ((used (max value 0.1)))
            (set-default symbol used)
-           (when ghb-idle-timer (ghb--start-idle-timer))
-           )
-         )
-  )
+           (--each (frame-list)
+             (when (ghb-get ghb-idle-timer it)
+               (ghb--start-idle-timer it))))))
 
 (defcustom ghb-time-update-interval 0.5
   "Time between two update of the header bar in seconds.
@@ -110,120 +121,124 @@ Values smaller than 0.1 sec are treated as 0.1 sec."
   :set (lambda (symbol value)
          (let ((used (max value 0.1)))
            (set-default symbol value)
-           (when ghb-timer (ghb--start-timer))
-           )
-         )
-  )
-
-
-(defconst ghb-buffer-name "Ghb"
-  "General name of the header buffer."
-  )
+           (--each (frame-list)
+             (when (ghb-get ghb-timer it)
+               (ghb--start-timer it))))))
 
 (defvar ghb-parameters
   '(window-parameters . ((no-other-window . t)
                          (no-delete-other-windows . t)
                          (mode-line-format . none))))
 
-(defun ghb--start-idle-timer ()
+(defun ghb-const-buffer-name (&optional frame)
+  "Construct header buffer name from `ghb-buffer-name' and the FRAME name.
+If FRAME is nil, we use the current frame.
+The return value should be unique for each frame.
+On terminals instance, we use the frame parameter `name'
+On Graphics ones, the name isn't unique for each frame, so we use
+`window-id' that isn't available on terminals instance."
+  (let ((previous (ghb-get ghb-buffer-name frame)))
+    (if previous
+        previous
+      (let ((name (concat "  *GHB-"
+                          (or (frame-parameter nil 'window-id)
+                              (frame-parameter nil 'name))
+                          "*  ")))
+        (ghb-set ghb-buffer-name name frame)))))
+
+(defun ghb-get-buffer (&optional frame)
+  "Return header buffer object for FRAME."
+  (get-buffer-create (ghb-const-buffer-name frame)))
+
+(defun ghb-set-window (&optional frame)
+  "Display ghb  buffer in a side window in FRAME."
+  (display-buffer (ghb-get-buffer frame)
+                  `(display-buffer-in-side-window . ((side . top)
+                                                     (slot . 0)
+                                                     (window-height . 1)
+                                                     (preserve-size . (nil . t))
+                                                     ,ghb-parameters))
+                  frame))
+
+(defun ghb-get-window (&optional frame)
+  "Return the created/existing window displaying the ghb.
+If FRAME is non-nil, the window is created in frame."
+  (let ((ghb-window (get-buffer-window (ghb-const-buffer-name frame) frame)))
+    (unless ghb-window
+      (setq ghb-window (ghb-set-window frame))
+      (set-window-dedicated-p ghb-window t)
+      (set-window-parameter ghb-window 'no-delete-other-windows t)
+      (set-window-parameter ghb-window 'mode-line-format 'none))
+    ghb-window))
+
+(defun ghb--start-idle-timer (&optional frame)
   "Start the `ghb-idle-timer'."
-  (when ghb-idle-timer (cancel-timer ghb-idle-timer))
-  (setq ghb-idle-timer
-        (run-with-idle-timer ghb-time-idle-delay
-                             :repeat #'ghb-start
-                             )
-        )
-  )
+  (let ((idle-timer (ghb-get ghb-idle-timer frame)))
+    (when idle-timer (cancel-timer idle-timer))
+    (ghb-set ghb-idle-timer
+             (run-with-idle-timer ghb-time-idle-delay
+                                  :repeat #'ghb-start frame)
+             frame)))
 
-(defun ghb--start-timer ()
+(defun ghb--start-timer (&optional frame)
   "Start the `ghb-timer'."
-  (when ghb-timer (cancel-timer ghb-timer))
-  (setq ghb-timer
-        (run-with-timer ghb-time-update-interval ghb-time-update-interval
-                        #'ghb-update
-                        )
-        )
-  )
+  (let ((timer (ghb-get ghb-timer frame)))
+    (when timer (cancel-timer timer))
+    (ghb-set ghb-timer
+             (run-with-timer ghb-time-update-interval
+                             ghb-time-update-interval
+                             #'ghb-update frame)
+             frame)))
 
-(defun ghb-start ()
+(defun ghb-start (&optional frame)
   "Timer function called from the timer `ghb-idle-timer'.
 This starts the timer `ghb-timer', which updates the header bar
 if appropriate.  It also arranges to cancel that timer when the next
 command starts, by installing a pre-command hook."
-  (when (null ghb-timer)
+  (when (null (ghb-get ghb-timer frame))
     ;; Set up the timer first, so that if this signals an error,
     ;; ghb is not added to pre-command-hook.
-    (ghb--start-timer)
-    (add-hook 'pre-command-hook 'ghb-end)
-    )
-  )
+    (ghb--start-timer frame)))
+    ;; (add-hook 'pre-command-hook (lambda () (ghb-end frame)))))
 
-(defun ghb-end ()
+(defun ghb-end (&optional frame)
   "Stop header bar updating.
 This is installed as a pre-command hook by `ghb-start'.
 When run, it cancels the timer `ghb-timer' and removes
 itself as a pre-command hook."
-  (remove-hook 'pre-command-hook 'ghb-end)
-  (when ghb-timer
-    (cancel-timer ghb-timer)
-    (setq ghb-timer nil)))
+  ;; (remove-hook 'pre-command-hook (lambda () (ghb-end frame)))
+  (let ((timer (ghb-get ghb-timer frame)))
+    (when timer
+      (cancel-timer timer)
+      (ghb-set ghb-timer nil frame))))
 
 
-(defun ghb-const-buffer-name ()
-  "Construct header buffer name."
-  (concat "  *" ghb-buffer-name "*  "))
-
-(defun ghb-get-buffer ()
-  "Return header buffer object."
-  (get-buffer-create (ghb-const-buffer-name)))
-
-(defun ghb-get-window ()
-  "Return header window object."
-  (let ((ghb-window (get-buffer-window (ghb-const-buffer-name))))
-    (unless ghb-window
-      (progn
-        (setq ghb-window (display-buffer-in-side-window (ghb-get-buffer)
-                                                           `((side . top)
-                                                             (slot . 0)
-                                                             (window-height . 1)
-                                                             (preserve-size . (nil . t))
-                                                             ,ghb-parameters)))
-        (set-window-parameter ghb-window 'mode-line-format 'none)
-        (set-window-dedicated-p ghb-window t)
-        )
-      )
-    ghb-window))
-
-(defun ghb-call-func-in-ghb (funcname &rest args)
+(defun ghb-call-func-in-ghb (funcname &optional frame &rest args)
   "Call FUNCNAME in header window with ARGS and come back to previous window."
-  (let ((ghb-window (ghb-get-window))
-        (ghb-window-origin (get-buffer-window)))
-    (select-window ghb-window)
+  (with-current-buffer (ghb-get-buffer frame)
     (let ((result (if args
                       (apply funcname args)
                     (funcall funcname))))
-      (select-window ghb-window-origin)
       (. result))))
 
-(defun ghb-write-text (project)
+(defun ghb-write-text (project &optional frame)
   "Errase buffer and write header text with PROJECT as project name."
   (erase-buffer)
-  (ghb-print project)
+  (ghb-print project frame)
   )
 
-(defun ghb-text-width ()
+(defun ghb-text-width (&optional frame)
   "Return header window text width."
-  (ghb-call-func-in-ghb 'window-body-width))
+  (window-width (ghb-get-window frame)))
 
 (defun ghb-exists-p ()
   "Return header buffer if exists."
   (get-buffer (ghb-const-buffer-name)))
 
-(defun ghb-update ()
+(defun ghb-update (&optional frame)
   "Update header buffer text."
   (let ((project (ghb-project-string)))
-    (ghb-call-func-in-ghb 'ghb-write-text project))
-  )
+    (ghb-call-func-in-ghb 'ghb-write-text frame  project frame)))
 
 (defun ghb-battery-string-w-icons ()
   "Return the battery string with only icons."
@@ -280,7 +295,7 @@ itself as a pre-command hook."
     )
   )
 
-(defun ghb-print (project)
+(defun ghb-print (project &optional frame)
   "Write the header in the header buffer using PROJECT as project name."
   (let* ((battery (if (not battery-status-function)
                       ""
@@ -289,7 +304,7 @@ itself as a pre-command hook."
                   )
          (time (ghb-time-string))
          (project-width (string-width project))
-         (line-width (ghb-text-width))
+         (line-width (ghb-text-width frame))
          (battery-width (string-width battery))
          (time-width (string-width time))
          (adjust (if (or (eq ghb-battery-display-function 'ghb-battery-string-w-icons)
@@ -335,17 +350,16 @@ itself as a pre-command hook."
       )
     )
   (ghb-end)
-  (when ghb-idle-timer
-    (cancel-timer ghb-idle-timer)
-    (setq ghb-idle-timer nil)
-    )
-  )
+  (let ((idle-timer (ghb-get ghb-idle-timer)))
+    (when idle-timer
+      (cancel-timer idle-timer)
+      (ghb-set ghb-idle-timer nil))))
 
 (define-derived-mode ghb-bar-mode nil "Ghb-Bar"
   "Major mode for Headerbar."
   (buffer-face-set 'ghb)
   (setq cursor-type nil)
-  (ghb--start-idle-timer)
+  (ghb--start-idle-timer (selected-frame))
   :group 'ghb
   )
 
