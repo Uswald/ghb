@@ -27,12 +27,12 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
+
 ;; This package propose to insert a frame header bar with :
 ;;  - project name;
 ;;  - date and time;
 ;;  - battery information.
-;;
+
 ;;; Code:
 
 (require 'all-the-icons)
@@ -198,15 +198,15 @@ command starts, by installing a pre-command hook."
   (when (null (ghb-get ghb-timer frame))
     ;; Set up the timer first, so that if this signals an error,
     ;; ghb is not added to pre-command-hook.
-    (ghb--start-timer frame)))
-    ;; (add-hook 'pre-command-hook (lambda () (ghb-end frame)))))
+    (ghb--start-timer frame)
+    (add-hook 'pre-command-hook `(lambda () (ghb-end ,frame)))))
 
 (defun ghb-end (&optional frame)
   "Stop header bar updating.
 This is installed as a pre-command hook by `ghb-start'.
 When run, it cancels the timer `ghb-timer' and removes
 itself as a pre-command hook."
-  ;; (remove-hook 'pre-command-hook (lambda () (ghb-end frame)))
+  (remove-hook 'pre-command-hook `(lambda () (ghb-end ,frame)))
   (let ((timer (ghb-get ghb-timer frame)))
     (when timer
       (cancel-timer timer)
@@ -366,6 +366,8 @@ itself as a pre-command hook."
 (add-to-list 'desktop-modes-not-to-save 'ghb-bar-mode)
 (advice-add 'desktop-save :before 'ghb-close)
 (advice-add 'desktop-save :after 'ghb-open)
+
+(setq ghb-time-idle-delay 5.0)
 
 (provide 'ghb)
 ;;; ghb.el ends here
