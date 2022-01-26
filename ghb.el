@@ -110,8 +110,8 @@ Values smaller than 0.1 sec are treated as 0.1 sec."
          (let ((used (max value 0.1)))
            (set-default symbol used)
            (--each (frame-list)
-             (when (ghb-get ghb-idle-timer it)
-               (ghb--start-idle-timer it))))))
+             (lambda (f) (when (ghb-get ghb-idle-timer f)
+                           (ghb--start-idle-timer f)))))))
 
 (defcustom ghb-time-update-interval 0.5
   "Time between two update of the header bar in seconds.
@@ -122,8 +122,8 @@ Values smaller than 0.1 sec are treated as 0.1 sec."
          (let ((used (max value 0.1)))
            (set-default symbol value)
            (--each (frame-list)
-             (when (ghb-get ghb-timer it)
-               (ghb--start-timer it))))))
+             (lambda (f) (when (ghb-get ghb-timer f)
+                           (ghb--start-timer f)))))))
 
 (defvar ghb-parameters
   '(window-parameters . ((no-other-window . t)
