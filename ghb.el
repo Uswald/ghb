@@ -109,9 +109,12 @@ Values smaller than 0.1 sec are treated as 0.1 sec."
   :set (lambda (symbol value)
          (let ((used (max value 0.1)))
            (set-default symbol used)
-           (--each (frame-list)
-             (lambda (f) (when (ghb-get ghb-idle-timer f)
-                           (ghb--start-idle-timer f)))))))
+           (-each (frame-list)
+             (lambda (f)
+               (let ((timer (ghb-get ghb-idle-timer f)))
+                 (when timer
+                   (cancel-timer timer)
+                   (ghb--start-idle-timer f))))))))
 
 (defcustom ghb-time-update-interval 0.5
   "Time between two update of the header bar in seconds.
@@ -121,9 +124,12 @@ Values smaller than 0.1 sec are treated as 0.1 sec."
   :set (lambda (symbol value)
          (let ((used (max value 0.1)))
            (set-default symbol value)
-           (--each (frame-list)
-             (lambda (f) (when (ghb-get ghb-timer f)
-                           (ghb--start-timer f)))))))
+           (-each (frame-list)
+             (lambda (f)
+               (let ((timer (ghb-get ghb-timer f)))
+                 (when timer
+                   (cancel-timer timer)
+                   (ghb--start-timer f))))))))
 
 (defvar ghb-parameters
   '(window-parameters . ((no-other-window . t)
@@ -366,8 +372,6 @@ itself as a pre-command hook."
 (add-to-list 'desktop-modes-not-to-save 'ghb-bar-mode)
 (advice-add 'desktop-save :before 'ghb-close)
 (advice-add 'desktop-save :after 'ghb-open)
-
-(setq ghb-time-idle-delay 5.0)
 
 (provide 'ghb)
 ;;; ghb.el ends here
