@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/Uswald/ghb/releases/latest"><img src="https://img.shields.io/badge/Release-1.1.2-blue"></a>
-  <a href="https://github.com/domtronn/all-the-icons.el/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-GPL%203-brightgreen"></a>
+  <a href="https://github.com/Uswald/ghb/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-GPL%203-brightgreen"></a>
 </p>
 
 ![GHB](Screenshots/ghb.png)
