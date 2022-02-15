@@ -295,11 +295,21 @@ itself as a pre-command hook."
         )
     (concat name (if (not (string= "" rev))
                      (concat " > " rev)
-                   ""
-                   )
-            )
-    )
-  )
+                   ""))))
+
+(defun ghb-erc-display-channel (tup)
+  (let* ((name (buffer-name (car tup)))
+         (count (cadr tup))
+         (faces (cddr tup))
+         (dis (concat name "[" (number-to-string count) "]")))
+    (put-text-property 0 (length dis) 'face faces dis)
+    dis))
+
+(defun ghb-erc-display ()
+  (if (and (boundp 'erc-modified-channels-alist)
+           erc-modified-channels-alist)
+      (mapconcat 'ghb-erc-display-channel erc-modified-channels-alist ",")
+    ""))
 
 (defun ghb-print (project &optional frame)
   "Write the header in the header buffer using PROJECT as project name."
@@ -309,23 +319,28 @@ itself as a pre-command hook."
                     )
                   )
          (time (ghb-time-string))
+         (erc (ghb-erc-display))
          (project-width (string-width project))
          (line-width (ghb-text-width frame))
          (battery-width (string-width battery))
          (time-width (string-width time))
+         (erc-width (string-width erc))
          (adjust (if (or (eq ghb-battery-display-function 'ghb-battery-string-w-icons)
                          (eq ghb-battery-display-function 'ghb-battery-string-text-icons)
                          )
                      2
-                   0))
+                   1))
          (start-width (- (/ (- line-width time-width) 2) project-width))
-         (end-width (- line-width (+ start-width battery-width time-width project-width adjust)))
+         ;; (end-width (- line-width (+ start-width battery-width time-width project-width adjust)))
+         (end-width (- line-width (+ start-width erc-width 1 battery-width time-width project-width adjust)))
          )
     (insert (concat
              project
              (make-string start-width ? )
              time
              (make-string end-width ? )
+             erc
+             " "
              battery))))
 
 (defun ghb-open (&rest _x)
@@ -360,6 +375,16 @@ itself as a pre-command hook."
     (when idle-timer
       (cancel-timer idle-timer)
       (ghb-set ghb-idle-timer nil))))
+
+(defvar ghb-bar-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mouse-1] 'ignore)
+    (define-key map [down-mouse-1] 'ignore)
+    (define-key map [mouse-2] 'ignore)
+    (define-key map [down-mouse-2] 'ignore)
+    (define-key map [mouse-3] 'ignore)
+    (define-key map [down-mouse-3] 'ignore)
+    map))
 
 (define-derived-mode ghb-bar-mode nil "Ghb-Bar"
   "Major mode for Headerbar."
